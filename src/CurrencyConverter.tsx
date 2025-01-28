@@ -1,8 +1,16 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 
 const CurrencyConverter = () => {
-  const [amount, setAmount] = useState("1");
+  const [amount, setAmount] = useState("10");
   const [fromCurrency, setFromCurrency] = useState("USD");
+  const [rates, setRates] = useState({
+    USD: 1,
+    MXN: 21,
+    COP: 4000,
+    EUR: 0.9,
+  });
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Currency data with flags, symbols, and country names
   const currencies = {
@@ -32,13 +40,63 @@ const CurrencyConverter = () => {
     },
   };
 
-  // Exchange rates (as of a fixed date for demonstration)
-  const rates = {
-    USD: 1,
-    MXN: 16.71,
-    COP: 3936.85,
-    EUR: 0.92,
-  };
+  // Fetch exchange rates from API
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
+        const data = await response.json();
+
+        // Filter only our supported currencies
+        const filteredRates = {
+          USD: 1,
+          EUR: data.rates.EUR,
+          MXN: data.rates.MXN,
+          COP: data.rates.COP,
+        };
+
+        setRates(filteredRates);
+        setLastUpdated(new Date());
+        setIsLoading(false);
+
+        // Cache the rates and timestamp
+        localStorage.setItem(
+          "exchangeRates",
+          JSON.stringify({
+            rates: filteredRates,
+            timestamp: new Date().getTime(),
+          })
+        );
+      } catch (error) {
+        console.error("Error fetching rates:", error);
+        // Try to load cached rates if API fails
+        const cached = localStorage.getItem("exchangeRates");
+        if (cached) {
+          const { rates: cachedRates, timestamp } = JSON.parse(cached);
+          setRates(cachedRates);
+          setLastUpdated(new Date(timestamp));
+        }
+        setIsLoading(false);
+      }
+    };
+
+    // Check if we have cached rates less than 1 hour old
+    const cached = localStorage.getItem("exchangeRates");
+    if (cached) {
+      const { rates: cachedRates, timestamp } = JSON.parse(cached);
+      const age = new Date().getTime() - timestamp;
+      if (age < 3600000) {
+        // 1 hour
+        setRates(cachedRates);
+        setLastUpdated(new Date(timestamp));
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    fetchRates();
+  }, []);
 
   // Convert the amount to all currencies
   const convertAll = (value: number, from: string) => {
@@ -64,6 +122,10 @@ const CurrencyConverter = () => {
       <div className="p-6">
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold">Currency Converter</h2>
+          <p className="text-sm mt-2">
+            <span className="italic">"El convierte, no se divierte."</span> pero para esos calculos
+            rápidos:
+          </p>
         </div>
         <div className="space-y-6">
           {/* Amount Input */}
