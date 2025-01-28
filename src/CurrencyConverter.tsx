@@ -116,7 +116,7 @@ const CurrencyConverter = () => {
   };
 
   const results = convertAll(parseFloat(amount) || 0, fromCurrency);
-
+  const referenceResults = convertAll(10, "USD");
   return (
     <div className="w-full max-w-lg mx-auto bg-white rounded-xl shadow-md overflow-hidden">
       <div className="p-6">
@@ -185,6 +185,27 @@ const CurrencyConverter = () => {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Reference Rates */}
+          <div className="mt-6 pt-4 border-t">
+            <h4 className="text-sm text-gray-600 mb-2">Reference Rates (10 USD)</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+              {referenceResults.map(({ currency, value, symbol }) => (
+                <div key={currency} className="flex justify-between">
+                  <span>{currency}</span>
+                  <span>
+                    {symbol}
+                    {value}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {lastUpdated && (
+              <p className="text-xs text-gray-500 mt-2">
+                Last updated: {lastUpdated.toLocaleString()}
+              </p>
+            )}
           </div>
         </div>
       </div>
